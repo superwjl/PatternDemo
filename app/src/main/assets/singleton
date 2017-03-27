@@ -1,0 +1,114 @@
+3、单例模式（Singleton）
+
+单例模式主要是为了避免因为创建了多个实例造成资源的浪费，且多个实例由于多次调用容易导致结果出现错误，而使用单例模式能够保证整个应用中有且只有一个实例。
+
+单例模式的设计思想
+在上面我们说到现在解决问题的关键就是保证在应用中只有一个对象就行了，那么怎么保证只有一个对象呢？
+其实只需要三步就可以保证对象的唯一性
+(1)不允许其他程序用new对象。
+    因为new就是开辟新的空间，在这里更改数据只是更改的所创建的对象的数据，如果可以new的话，每一次new都产生一个对象，这样肯定保证不了对象的唯一性。
+(2)在该类中创建对象
+   因为不允许其他程序new对象，所以这里的对象需要在本类中new出来
+(3)对外提供一个可以让其他程序获取该对象的方法
+   因为对象是在本类中创建的，所以需要提供一个方法让其它的类获取这个对象。
+那么这三步怎么用代码实现呢？将上述三步转换成代码描述是这样的
+(1)私有化该类的构造函数
+(2)通过new在本类中创建一个本类对象
+(3)定义一个公有的方法，将在该类中所创建的对象返回
+
+/**
+ * 饿汉式
+ */
+public class Singleton {
+
+    private static Singleton intance = new Singleton();
+
+    /** 私有构造方法，防止被实例化 */
+    private Singleton() {
+
+    }
+
+    public static Singleton getIntance(){
+        return intance;
+    }
+}
+优点：从它的实现中我们可以看到，这种方式的实现比较简单，在类加载的时候就完成了实例化，避免了线程的同步问题。
+缺点：由于在类加载的时候就实例化了，所以没有达到Lazy Loading(懒加载)的效果，也就是说可能我没有用到这个实例，但是它
+也会加载，会造成内存的浪费(但是这个浪费可以忽略，所以这种方式也是推荐使用的)。
+
+/**
+ * 懒汉式
+ */
+public class Singleton02 {
+
+    /** 持有私有静态实例，防止被引用，此处赋值为null，目的是实现延迟加载 */
+    private static Singleton02 instance = null;
+
+    /** 私有构造方法，防止被实例化 */
+    private Singleton02() {
+
+    }
+
+    /** 静态工程方法，创建实例 */
+    public static Singleton02 getInstance(){
+        if(instance == null){
+            synchronized (Singleton02.class){
+                if(instance == null){
+                    instance = new Singleton02();
+                }
+            }
+        }
+        return instance;
+    }
+
+    /** 如果该对象被用于序列化，可以保证对象在序列化前后保持一致 */
+    public Object readResolve() {
+        return instance;
+    }
+}
+Double-Check概念对于多线程开发者来说不会陌生，如代码中所示，我们进行了两次if (instance== null)检查，这样就可以保证线程安全了。这样，实例化代码只用执行一次，后面再次访问时，判断if (instance== null)，直接return实例化对象。
+优点：线程安全；延迟加载；效率较高。
+
+/**
+ * 内部类
+ */
+public class Singleton03 {
+
+    /** 私有构造方法，防止被实例化 */
+    private Singleton03() {
+    }
+
+    /** 此处使用一个内部类来维护单例 */
+    private static class SingletonFactory {
+        private static Singleton03 instance = new Singleton03();
+    }
+
+    /** 获取实例 */
+    public static Singleton03 getInstance(){
+        return SingletonFactory.instance;
+    }
+
+    /** 如果该对象被用于序列化，可以保证对象在序列化前后保持一致 */
+    public Object readResolve() {
+        return getInstance();
+    }
+}
+这种方式跟饿汉式方式采用的机制类似，但又有不同。两者都是采用了类装载的机制来保证初始化实例时只有一个线程。不同
+ 的地方在饿汉式方式是只要Singleton类被装载就会实例化，没有Lazy-Loading的作用，而静态内部类方式在Singleton类被装载时
+ 并不会立即实例化，而是在需要实例化时，调用getInstance方法，才会装载SingletonFactory类，从而完成Singleton的实例化。
+ 类的静态属性只会在第一次加载类的时候初始化，所以在这里，JVM帮助我们保证了线程的安全性，在类进行初始化时，别的线程是
+ 无法进入的。
+ 优点：避免了线程不安全，延迟加载，效率高。
+
+/**
+ * 枚举
+ */
+public enum Singleton04 {
+    INSTANCE;
+
+    /** 私有构造方法，防止被实例化 */
+    private Singleton04() {
+    }
+}
+可以看到枚举的书写非常简单，访问也很简单在这里SingletonEnum.instance这里的instance即为SingletonEnum类型的引用所以得到它就可以调用枚举中的方法了。
+借助JDK1.5中添加的枚举来实现单例模式。不仅能避免多线程同步问题，而且还能防止反序列化重新创建新的对象。可能是因为枚举在JDK1.5中才添加，所以在实际项目开发中，很少见人这么写过，这种方式也是最好的一种方式，如果在开发中JDK满足要求的情况下建议使用这种方式。
